@@ -9,6 +9,8 @@ resolvers += "Sonatype OSS Snapshots" at
 
 libraryDependencies += "com.github.axel22" % "scalameter_2.10" % "0.5-SNAPSHOT"
 
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.0" % "test"
+
 testFrameworks += new TestFramework(
   "org.scalameter.ScalaMeterFramework")
 
