@@ -17,12 +17,20 @@ object HashSetBenchmark extends PerformanceTest {
   lazy val reporter = ChartReporter(ChartFactory.XYLine())
   lazy val persistor = Persistor.None
 
+  val opts = Seq(
+    exec.minWarmupRuns -> 50,
+    exec.maxWarmupRuns -> 100,
+    exec.benchRuns -> 30,
+    exec.independentSamples -> 1,
+    exec.jvmflags -> "-server -Xms3072m -Xmx3072m -XX:MaxPermSize=256m -XX:ReservedCodeCacheSize=64m -XX:+UseCondCardMark -XX:CompileThreshold=100",
+    reports.regression.noiseMagnitude -> 0.15)
+
   /* Inputs */
 
-  val count: Gen[Int] = Gen.range("count")(100, 50000, 1000)
+  val count: Gen[Int] = Gen.enumeration("size")(3000000, 9000000, 15000000)
   val rand: Random = new Random(1l)
 
-  def scalaSets = for {
+  def scalaIntSets = for {
     size <- count
   } yield {
     val hs = mutable.HashSet[Int]()
@@ -30,7 +38,7 @@ object HashSetBenchmark extends PerformanceTest {
     hs
   }
 
-  def newScalaSets = for {
+  def newScalaIntSets = for {
     size <- count
   } yield {
     val hs = ru.softage.collection.mutable.HashSet[Int]()
@@ -38,80 +46,57 @@ object HashSetBenchmark extends PerformanceTest {
     hs
   }
 
+  // TODO: add sets with float and string
+
   /* Tests for {Contains, Add, Remove} operations */
-
-  /* On standart scala HashSet implementation */
-  performance of "scala" in {
+  performance of "HashSet" config (opts: _*) in {
 
     measure method "Contains" in {
-      using(scalaSets) in {
-        set => {
-          set.foreach(
-            i =>
-              set.contains(i)
-          )
-        }
+
+      using(scalaIntSets) curve("scala") in { set =>
+        set.foreach(
+          i => set.contains(i)
+        )
       }
+
+      using(newScalaIntSets) curve("new_scala") in { set =>
+        set.foreach(
+          i => set.contains(i)
+        )
+      }
+
     }
 
     measure method "Add" in {
-      using(scalaSets) in {
-        set => {
-          set.foreach(
-            i =>
-              set.add(i)
-          )
-        }
+
+      using(scalaIntSets) curve("scala") in { set =>
+        set.foreach(
+          i => set.add(i)
+        )
       }
+
+      using(newScalaIntSets) curve("new_scala") in { set =>
+        set.foreach(
+          i => set.add(i)
+        )
+      }
+
     }
 
     measure method "Remove" in {
-      using(scalaSets) in {
-        set => {
-          set.foreach(
-            i =>
-              set.remove(i)
-          )
-        }
+
+      using(scalaIntSets) curve("scala") in { set =>
+        set.foreach(
+          i => set.remove(i)
+        )
       }
-    }
 
-  }
-
-  /* On Softage new experimental HashSet implementation */
-  performance of "new_scala" in {
-
-    measure method "Contains" in {
-      using(newScalaSets) in {
-        set => {
+      using(newScalaIntSets) curve("new_scala") in { set =>
           set.foreach(
-            i =>
-              set.contains(i)
+            i => set.remove(i)
           )
-        }
       }
-    }
 
-    measure method "Add" in {
-      using(newScalaSets) in {
-        set => {
-          set.foreach(
-            i =>
-              set.add(i)
-          )
-        }
-      }
-    }
-
-    measure method "Remove" in {
-      using(newScalaSets) in {
-        set => {
-          set.foreach(
-            i =>
-              set.remove(i)
-          )
-        }
-      }
     }
 
   }
