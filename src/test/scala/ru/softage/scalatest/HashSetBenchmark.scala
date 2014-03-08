@@ -41,7 +41,7 @@ object HashSetBenchmark extends PerformanceTest {
   def newScalaIntSets = for {
     size <- count
   } yield {
-    val hs = ru.softage.collection.mutable.HashSet[Int]()
+    val hs = ru.softage.collection.mutable.LibTrieHashSet[Int]()
     for (x <- 0 until size) hs.add(rand.nextInt())
     hs
   }
