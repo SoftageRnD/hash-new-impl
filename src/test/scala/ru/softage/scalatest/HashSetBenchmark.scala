@@ -74,41 +74,5 @@ object HashSetBenchmark extends PerformanceTest {
           set.foreach(i => set.contains(i))
       }
     }
-
-    measure method "Add" in {
-
-      using(scalaIntSets) curve "scala" in {
-        set =>
-          set.foreach(i => set.add(i))
-      }
-
-      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
-        set =>
-          set.foreach(i => set.add(i))
-      }
-
-      using(listBucketIntSets) curve "new_list_bucket" in {
-        set =>
-          set.foreach(i => set.add(i))
-      }
-    }
-
-    measure method "Remove" in {
-
-      using(scalaIntSets) curve "scala" in {
-        set =>
-          set.foreach(i => set.remove(i))
-      }
-
-      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
-        set =>
-          set.foreach(i => set.remove(i))
-      }
-
-      using(listBucketIntSets) curve "new_list_bucket" in {
-        set =>
-          set.foreach(i => set.remove(i))
-      }
-    }
   }
 }
