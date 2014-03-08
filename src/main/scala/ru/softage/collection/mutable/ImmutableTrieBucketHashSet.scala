@@ -2,18 +2,18 @@ package ru.softage.collection.mutable
 
 import scala.collection.generic.{MutableSetFactory, CanBuildFrom}
 import scala.collection.{TraversableOnce, mutable, immutable}
-import ru.softage.collection.mutable.LibTrieHashSet.Bucket
+import ru.softage.collection.mutable.ImmutableTrieBucketHashSet.Bucket
 
 /**
  * Mutable HashSet with buckets implemented using scala.collection.immutable.Set
  */
-class LibTrieHashSet[A]
+class ImmutableTrieBucketHashSet[A]
   extends mutable.Set[A]
-  with mutable.SetLike[A, LibTrieHashSet[A]] {
+  with mutable.SetLike[A, ImmutableTrieBucketHashSet[A]] {
 
-  private val loadFactor = LibTrieHashSet.DefaultLoadFactor
+  private val loadFactor = ImmutableTrieBucketHashSet.DefaultLoadFactor
 
-  private[this] var table = new Array[AnyRef](LibTrieHashSet.DefaultInitialCapacity)
+  private[this] var table = new Array[AnyRef](ImmutableTrieBucketHashSet.DefaultInitialCapacity)
   private var collectionSize = 0
   private var threshold = calculateThreshold()
   private var containsNull = false
@@ -52,7 +52,7 @@ class LibTrieHashSet[A]
       case value =>
         val isSame = value == elem
         if (!isSame)
-          table.update(index, LibTrieHashSet.createBucket(value, elem))
+          table.update(index, ImmutableTrieBucketHashSet.createBucket(value, elem))
         isSame
     }
   }
@@ -65,7 +65,7 @@ class LibTrieHashSet[A]
     table(index) match {
       case null => table.update(index, elem)
       case bucket: Bucket => bucket.addWithoutCheck(elem)
-      case value => table.update(index, LibTrieHashSet.createBucket(value, elem))
+      case value => table.update(index, ImmutableTrieBucketHashSet.createBucket(value, elem))
     }
   }
 
@@ -214,21 +214,21 @@ class LibTrieHashSet[A]
     }
   }
 
-  override def empty = new LibTrieHashSet[A]
+  override def empty = new ImmutableTrieBucketHashSet[A]
 
   private def getIndex(tableSize: Int)(elem: AnyRef): Int = elem.## & tableSize - 1
 
   private def getCell(elem: AnyRef): Any = table(getIndex(table.length)(elem))
 }
 
-object LibTrieHashSet extends MutableSetFactory[LibTrieHashSet] {
+object ImmutableTrieBucketHashSet extends MutableSetFactory[ImmutableTrieBucketHashSet] {
 
   private val DefaultInitialCapacity = 16
   private val DefaultLoadFactor = 0.75f
 
-  implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, LibTrieHashSet[A]] = setCanBuildFrom[A]
+  implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, ImmutableTrieBucketHashSet[A]] = setCanBuildFrom[A]
 
-  override def empty[A]: LibTrieHashSet[A] = new LibTrieHashSet[A]
+  override def empty[A]: ImmutableTrieBucketHashSet[A] = new ImmutableTrieBucketHashSet[A]
 
   private def createBucket[A](firstElem: AnyRef, secondElem: AnyRef): Bucket = {
     new Bucket(immutable.Set(firstElem, secondElem))

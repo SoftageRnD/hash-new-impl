@@ -6,13 +6,13 @@ import scala.collection.{TraversableOnce, mutable}
 /**
  * Mutable HashSet with buckets implemented using mutable linked list
  */
-class ListHashSet[A]
+class ListBucketHashSet[A]
   extends mutable.Set[A]
-  with mutable.SetLike[A, ListHashSet[A]] {
+  with mutable.SetLike[A, ListBucketHashSet[A]] {
 
-  private val loadFactor = ListHashSet.DefaultLoadFactor
+  private val loadFactor = ListBucketHashSet.DefaultLoadFactor
 
-  private[this] var table = new Array[AnyRef](ListHashSet.DefaultInitialCapacity)
+  private[this] var table = new Array[AnyRef](ListBucketHashSet.DefaultInitialCapacity)
   private var collectionSize = 0
   private var threshold = calculateThreshold()
   private var containsNull = false
@@ -213,18 +213,18 @@ class ListHashSet[A]
     }
   }
 
-  override def empty = new ListHashSet[A]
+  override def empty = new ListBucketHashSet[A]
 
   private def getIndex(tableSize: Int)(elem: AnyRef): Int = elem.## & tableSize - 1
 
   private def getCell(elem: AnyRef): Any = table(getIndex(table.length)(elem))
 }
 
-object ListHashSet extends MutableSetFactory[ListHashSet] {
+object ListBucketHashSet extends MutableSetFactory[ListBucketHashSet] {
   private val DefaultInitialCapacity = 16
   private val DefaultLoadFactor = 0.75f
 
-  implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, ListHashSet[A]] = setCanBuildFrom[A]
+  implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, ListBucketHashSet[A]] = setCanBuildFrom[A]
 
-  override def empty[A]: ListHashSet[A] = new ListHashSet[A]
+  override def empty[A]: ListBucketHashSet[A] = new ListBucketHashSet[A]
 }

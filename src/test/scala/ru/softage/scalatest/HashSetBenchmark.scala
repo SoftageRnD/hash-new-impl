@@ -29,10 +29,18 @@ object HashSetBenchmark extends PerformanceTest {
     hs
   }
 
-  def newScalaIntSets = for {
+  def immutableTrieBucketIntSets = for {
     size <- count
   } yield {
-    val hs = ru.softage.collection.mutable.LibTrieHashSet[Int]()
+    val hs = ru.softage.collection.mutable.ImmutableTrieBucketHashSet[Int]()
+    for (x <- 0 until size) hs.add(rand.nextInt())
+    hs
+  }
+
+  def listBucketIntSets = for {
+    size <- count
+  } yield {
+    val hs = ru.softage.collection.mutable.ListBucketHashSet[Int]()
     for (x <- 0 until size) hs.add(rand.nextInt())
     hs
   }
@@ -56,7 +64,12 @@ object HashSetBenchmark extends PerformanceTest {
           set.foreach(i => set.contains(i))
       }
 
-      using(newScalaIntSets) curve "new_scala" in {
+      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
+        set =>
+          set.foreach(i => set.contains(i))
+      }
+
+      using(listBucketIntSets) curve "new_list_bucket" in {
         set =>
           set.foreach(i => set.contains(i))
       }
@@ -69,11 +82,15 @@ object HashSetBenchmark extends PerformanceTest {
           set.foreach(i => set.add(i))
       }
 
-      using(newScalaIntSets) curve "new_scala" in {
+      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
         set =>
           set.foreach(i => set.add(i))
       }
 
+      using(listBucketIntSets) curve "new_list_bucket" in {
+        set =>
+          set.foreach(i => set.add(i))
+      }
     }
 
     measure method "Remove" in {
@@ -83,7 +100,12 @@ object HashSetBenchmark extends PerformanceTest {
           set.foreach(i => set.remove(i))
       }
 
-      using(newScalaIntSets) curve "new_scala" in {
+      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
+        set =>
+          set.foreach(i => set.remove(i))
+      }
+
+      using(listBucketIntSets) curve "new_list_bucket" in {
         set =>
           set.foreach(i => set.remove(i))
       }
