@@ -1,9 +1,8 @@
 package ru.softage.scalatest
 
-import org.scalameter.{Gen, PerformanceTest}
+import org.scalameter.Gen
 import org.scalameter.api._
 import scala.collection.mutable
-import scala.collection.immutable.Set
 import scala.util.Random
 
 object HashSetBenchmark extends PerformanceTest {
@@ -16,14 +15,6 @@ object HashSetBenchmark extends PerformanceTest {
     new Measurer.Default)
   lazy val reporter = ChartReporter(ChartFactory.XYLine())
   lazy val persistor = Persistor.None
-
-  val opts = Seq(
-    exec.minWarmupRuns -> 50,
-    exec.maxWarmupRuns -> 100,
-    exec.benchRuns -> 30,
-    exec.independentSamples -> 1,
-    exec.jvmflags -> "-server -Xms3072m -Xmx3072m -XX:MaxPermSize=256m -XX:ReservedCodeCacheSize=64m -XX:+UseCondCardMark -XX:CompileThreshold=100",
-    reports.regression.noiseMagnitude -> 0.15)
 
   /* Inputs */
 
@@ -49,7 +40,14 @@ object HashSetBenchmark extends PerformanceTest {
   // TODO: add sets with float and string
 
   /* Tests for {Contains, Add, Remove} operations */
-  performance of "HashSet" config (opts: _*) in {
+  performance of "HashSet" config(
+    exec.minWarmupRuns -> 50,
+    exec.maxWarmupRuns -> 100,
+    exec.benchRuns -> 30,
+    exec.independentSamples -> 1,
+    exec.jvmflags -> "-server -Xms3072m -Xmx3072m -XX:MaxPermSize=256m -XX:ReservedCodeCacheSize=64m -XX:+UseCondCardMark -XX:CompileThreshold=100",
+    reports.regression.noiseMagnitude -> 0.15
+    ) in {
 
     measure method "Contains" in {
 
