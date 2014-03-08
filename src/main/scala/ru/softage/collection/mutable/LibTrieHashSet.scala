@@ -2,15 +2,18 @@ package ru.softage.collection.mutable
 
 import scala.collection.generic.{MutableSetFactory, CanBuildFrom}
 import scala.collection.{TraversableOnce, mutable, immutable}
-import ru.softage.collection.mutable.HashSet.Bucket
+import ru.softage.collection.mutable.LibTrieHashSet.Bucket
 
-class HashSet[A]
+/**
+ * Mutable HashSet with buckets implemented using scala.collection.immutable.Set
+ */
+class LibTrieHashSet[A]
   extends mutable.Set[A]
-  with mutable.SetLike[A, HashSet[A]] {
+  with mutable.SetLike[A, LibTrieHashSet[A]] {
 
-  private val loadFactor = HashSet.DefaultLoadFactor
+  private val loadFactor = LibTrieHashSet.DefaultLoadFactor
 
-  private var table = new Array[AnyRef](HashSet.DefaultInitialCapacity)
+  private[this] var table = new Array[AnyRef](LibTrieHashSet.DefaultInitialCapacity)
   private var collectionSize = 0
   private var threshold = calculateThreshold()
   private var containsNull = false
@@ -42,17 +45,15 @@ class HashSet[A]
   private def putIntoTable(table: Array[AnyRef])(elem: AnyRef): Boolean = {
     val index = getIndex(table.length)(elem)
     table(index) match {
-      case null => {
-        table.update(index, elem)
+      case null =>
+      table.update(index, elem)
         false
-      }
       case bucket: Bucket => bucket.add(elem)
-      case value => {
+      case value =>
         val isSame = value == elem
         if (!isSame)
-          table.update(index, HashSet.createBucket(value, elem))
+          table.update(index, LibTrieHashSet.createBucket(value, elem))
         isSame
-      }
     }
   }
 
@@ -64,12 +65,11 @@ class HashSet[A]
     table(index) match {
       case null => table.update(index, elem)
       case bucket: Bucket => bucket.addWithoutCheck(elem)
-      case value => table.update(index, HashSet.createBucket(value, elem))
+      case value => table.update(index, LibTrieHashSet.createBucket(value, elem))
     }
   }
 
   override def ++=(xs: TraversableOnce[A]): this.type = {
-    // java.util.HashMap.putAll
     val numOfElementsToAdd = xs.size
     if (numOfElementsToAdd > threshold) {
       val predictedCapacity: Int = (numOfElementsToAdd / loadFactor + 1).asInstanceOf[Int]
@@ -116,23 +116,21 @@ class HashSet[A]
     val index = getIndex(table.length)(elemRef)
     table(index) match {
       case null => false
-      case bucket: Bucket => {
+      case bucket: Bucket =>
         val wasRemoved = bucket.remove(elemRef)
         if (wasRemoved) {
-          if (bucket.size == 1)
+          if (bucket.isOneElemRemained)
             table.update(index, bucket.getSingleValue)
           collectionSize -= 1
         }
         wasRemoved
-      }
-      case value => {
-        val sameElem = value == elemRef
+      case value =>
+      val sameElem = value == elemRef
         if (sameElem) {
           table.update(index, null)
           collectionSize -= 1
         }
         sameElem
-      }
     }
   }
 
@@ -187,16 +185,14 @@ class HashSet[A]
           while (index < table.length) {
             table(index) match {
               case null => index += 1
-              case bucket: Bucket => {
-                bucketIterator = bucket.iterator
+              case bucket: Bucket =>
+              bucketIterator = bucket.iterator
                 elemsVisited += 1
                 return bucketIterator.next().asInstanceOf[A]
-              }
-              case value => {
-                elemsVisited += 1
+              case value =>
+              elemsVisited += 1
                 index += 1
                 return value.asInstanceOf[A]
-              }
             }
           }
           throw new IllegalStateException("next element supposed to be but not found")
@@ -218,21 +214,21 @@ class HashSet[A]
     }
   }
 
-  override def empty = new HashSet[A]
+  override def empty = new LibTrieHashSet[A]
 
   private def getIndex(tableSize: Int)(elem: AnyRef): Int = elem.## & tableSize - 1
 
   private def getCell(elem: AnyRef): Any = table(getIndex(table.length)(elem))
 }
 
-object HashSet extends MutableSetFactory[HashSet] {
+object LibTrieHashSet extends MutableSetFactory[LibTrieHashSet] {
 
   private val DefaultInitialCapacity = 16
   private val DefaultLoadFactor = 0.75f
 
-  implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, HashSet[A]] = setCanBuildFrom[A]
+  implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, LibTrieHashSet[A]] = setCanBuildFrom[A]
 
-  override def empty[A]: HashSet[A] = new HashSet[A]
+  override def empty[A]: LibTrieHashSet[A] = new LibTrieHashSet[A]
 
   private def createBucket[A](firstElem: AnyRef, secondElem: AnyRef): Bucket = {
     new Bucket(immutable.Set(firstElem, secondElem))
@@ -263,11 +259,11 @@ object HashSet extends MutableSetFactory[HashSet] {
     }
 
     def getSingleValue: AnyRef =
-      if (size == 1)
+      if (isOneElemRemained)
         set.head
-      else throw new IllegalStateException("trying to get single value from bucket with size " + size)
+      else throw new IllegalStateException("trying to get last element from bucket with size != 1")
 
-    def size: Int = set.size
+    def isOneElemRemained: Boolean = set.size == 1
 
     def iterator: Iterator[AnyRef] = set.iterator
 
