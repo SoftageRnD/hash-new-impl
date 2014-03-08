@@ -9,7 +9,7 @@ object HashSetBenchmark extends PerformanceTest {
 
   /* Configuration */
 
-  lazy val executor = LocalExecutor( //need to change to SeparateJvmsExecutor
+  lazy val executor = LocalExecutor(//need to change to SeparateJvmsExecutor
     new Executor.Warmer.Default,
     Aggregator.min,
     new Measurer.Default)
@@ -51,52 +51,42 @@ object HashSetBenchmark extends PerformanceTest {
 
     measure method "Contains" in {
 
-      using(scalaIntSets) curve("scala") in { set =>
-        set.foreach(
-          i => set.contains(i)
-        )
+      using(scalaIntSets) curve "scala" in {
+        set =>
+          set.foreach(i => set.contains(i))
       }
 
-      using(newScalaIntSets) curve("new_scala") in { set =>
-        set.foreach(
-          i => set.contains(i)
-        )
+      using(newScalaIntSets) curve "new_scala" in {
+        set =>
+          set.foreach(i => set.contains(i))
       }
-
     }
 
     measure method "Add" in {
 
-      using(scalaIntSets) curve("scala") in { set =>
-        set.foreach(
-          i => set.add(i)
-        )
+      using(scalaIntSets) curve "scala" in {
+        set =>
+          set.foreach(i => set.add(i))
       }
 
-      using(newScalaIntSets) curve("new_scala") in { set =>
-        set.foreach(
-          i => set.add(i)
-        )
+      using(newScalaIntSets) curve "new_scala" in {
+        set =>
+          set.foreach(i => set.add(i))
       }
 
     }
 
     measure method "Remove" in {
 
-      using(scalaIntSets) curve("scala") in { set =>
-        set.foreach(
-          i => set.remove(i)
-        )
+      using(scalaIntSets) curve "scala" in {
+        set =>
+          set.foreach(i => set.remove(i))
       }
 
-      using(newScalaIntSets) curve("new_scala") in { set =>
-          set.foreach(
-            i => set.remove(i)
-          )
+      using(newScalaIntSets) curve "new_scala" in {
+        set =>
+          set.foreach(i => set.remove(i))
       }
-
     }
-
   }
-
 }
