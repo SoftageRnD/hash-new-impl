@@ -18,7 +18,7 @@ object HashSetBenchmark extends PerformanceTest {
 
   /* Inputs */
 
-  val count: Gen[Int] = Gen.enumeration("size")(3000000, 9000000, 15000000)
+  val count: Gen[Int] = Gen.range("size")(100000, 1000000, 100000)
   val rand: Random = new Random(1l)
 
   def scalaIntSets = for {
