@@ -58,13 +58,6 @@ object HashSetBenchmark extends PerformanceTest {
       val set = ru.softage.collection.mutable.ListBucketHashSet[Int]() ++= setData
       (set, testData)
     }
-
-    def treeSets = for {
-      (setData, testData) <- dataGen
-    } yield {
-      val set = mutable.TreeSet[Int]() ++= setData
-      (set, testData)
-    }
   }
 
   object StringData {
@@ -103,13 +96,6 @@ object HashSetBenchmark extends PerformanceTest {
       (setData, testData) <- dataGen
     } yield {
       val set = ru.softage.collection.mutable.ListBucketHashSet[String]() ++= setData
-      (set, testData)
-    }
-
-    def treeSets = for {
-      (setData, testData) <- dataGen
-    } yield {
-      val set = mutable.TreeSet[String]() ++= setData
       (set, testData)
     }
   }
@@ -151,15 +137,6 @@ object HashSetBenchmark extends PerformanceTest {
             i += 1
           }
       }
-
-      using(IntData.treeSets) curve "tree_set" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < testData.length) {
-            set.contains(testData(i))
-            i += 1
-          }
-      }
     }
 
     measure method "ContainsStrings" in {
@@ -183,15 +160,6 @@ object HashSetBenchmark extends PerformanceTest {
       }
 
       using(StringData.listBucketSets) curve "new_list_bucket" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < testData.length) {
-            set.contains(testData(i))
-            i += 1
-          }
-      }
-
-      using(StringData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -229,15 +197,6 @@ object HashSetBenchmark extends PerformanceTest {
             i += 1
           }
       }
-
-      using(IntData.treeSets) curve "tree_set" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < IntData.notExistedTestData.length) {
-            set.contains(IntData.notExistedTestData(i))
-            i += 1
-          }
-      }
     }
 
     measure method "ContainsNotExistedStrings" in {
@@ -261,15 +220,6 @@ object HashSetBenchmark extends PerformanceTest {
       }
 
       using(StringData.listBucketSets) curve "new_list_bucket" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < StringData.notExistedTestData.length) {
-            set.contains(StringData.notExistedTestData(i))
-            i += 1
-          }
-      }
-
-      using(StringData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
           while (i < StringData.notExistedTestData.length) {
@@ -307,15 +257,6 @@ object HashSetBenchmark extends PerformanceTest {
             i += 1
           }
       }
-
-      using(IntData.treeSets) curve "tree_set" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < IntData.notExistedTestData.length) {
-            set.add(IntData.notExistedTestData(i))
-            i += 1
-          }
-      }
     }
 
     measure method "AddStrings" in {
@@ -339,15 +280,6 @@ object HashSetBenchmark extends PerformanceTest {
       }
 
       using(StringData.listBucketSets) curve "new_list_bucket" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < StringData.notExistedTestData.length) {
-            set.add(StringData.notExistedTestData(i))
-            i += 1
-          }
-      }
-
-      using(StringData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
           while (i < StringData.notExistedTestData.length) {
@@ -385,15 +317,6 @@ object HashSetBenchmark extends PerformanceTest {
             i += 1
           }
       }
-
-      using(IntData.treeSets) curve "tree_set" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < testData.length) {
-            set.remove(testData(i))
-            i += 1
-          }
-      }
     }
 
     measure method "RemoveStrings" in {
@@ -417,15 +340,6 @@ object HashSetBenchmark extends PerformanceTest {
       }
 
       using(StringData.listBucketSets) curve "new_list_bucket" in {
-        case (set, testData) =>
-          var i = 0
-          while (i < testData.length) {
-            set.remove(testData(i))
-            i += 1
-          }
-      }
-
-      using(StringData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
