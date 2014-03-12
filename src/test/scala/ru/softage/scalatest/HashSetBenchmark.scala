@@ -11,7 +11,7 @@ object HashSetBenchmark extends PerformanceTest {
   val rand: Random = new Random(1l)
   lazy val executor = SeparateJvmsExecutor(
     new Executor.Warmer.Default,
-    Aggregator.min,
+    Aggregator.average,
     new Measurer.Default)
   lazy val reporter = ChartReporter(ChartFactory.XYLine())
   lazy val persistor = Persistor.None
