@@ -9,7 +9,7 @@ import scala.io.Source
 // copy-paste mostly, mb need to refactor
 object HashSetBenchmark extends PerformanceTest {
   val rand: Random = new Random(1l)
-  lazy val executor = SeparateJvmsExecutor(
+  lazy val executor = LocalExecutor(
     new Executor.Warmer.Default,
     Aggregator.average,
     new Measurer.Default)
