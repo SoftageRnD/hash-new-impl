@@ -1,11 +1,14 @@
 package ru.softage.collection.mutable.util
 
 import scala.util.matching.Regex
-import java.io.File
+import java.io._
 import scala.io.Source
+import scala.util.Random
+
 
 object ExtractIdentifiersFromScalaApp extends App {
   val PathToScala = "/media/migesok/a18cf1fa-5ed3-4899-975f-e2cf727b0221/home/migesok/prog/scala-rnd"
+  val PathToResultFile = "/home/migesok/identifiers.txt"
 
   val PlainIdPattern = "([a-zA-Z][a-zA-Z0-9_]*)".r
 
@@ -19,11 +22,19 @@ object ExtractIdentifiersFromScalaApp extends App {
     good ++ these.filter(_.isDirectory).flatMap(recursiveListFiles(_, r))
   }
 
-  val ids = for {
+  val rawIds = for {
     file <- recursiveListFiles(new File(PathToScala), "\\.scala".r).filter(_.getName.endsWith(".scala"))
     line <- Source.fromFile(file).getLines()
     id <- extractIdentifiers(line)
   } yield id
 
-  println(ids.toSet.size)
+  val shuffledIds = new Random(1488L).shuffle(rawIds.toBuffer.distinct)
+
+  val writer = new PrintWriter(
+    new BufferedWriter(new OutputStreamWriter(new FileOutputStream(PathToResultFile, false), "UTF-8")))
+  try {
+    shuffledIds.foreach(id => writer.println(id))
+  } finally {
+    writer.close()
+  }
 }
