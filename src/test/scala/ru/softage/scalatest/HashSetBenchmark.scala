@@ -4,19 +4,11 @@ import org.scalameter.Gen
 import org.scalameter.api._
 import scala.collection.mutable
 import scala.util.Random
+import scala.io.Source
 
+// copy-paste mostly, mb need to refactor
 object HashSetBenchmark extends PerformanceTest {
-
   val rand: Random = new Random(1l)
-
-  def generateDistinctRandomNums(size: Int): List[Int] = {
-    val set = mutable.HashSet[Int]()
-    while (set.size != size) set.add(rand.nextInt())
-    rand.shuffle(set.toList)
-  }
-
-  /* Configuration */
-
   lazy val executor = LocalExecutor(//need to change to SeparateJvmsExecutor
     new Executor.Warmer.Default,
     Aggregator.min,
@@ -24,48 +16,102 @@ object HashSetBenchmark extends PerformanceTest {
   lazy val reporter = ChartReporter(ChartFactory.XYLine())
   lazy val persistor = Persistor.None
 
-  /* Inputs */
-  val MaxSize = 1000000
-  val TestDataSize = 1000
-  val count: Gen[Int] = Gen.range("size")(100000, MaxSize, 10000)
-  val totalData = generateDistinctRandomNums(MaxSize + TestDataSize)
-  val data = totalData.take(MaxSize)
-  val notExistedTestData = totalData.takeRight(TestDataSize)
+  object IntData {
+    def generateDistinctRandomNums(size: Int): List[Int] = {
+      val set = mutable.HashSet[Int]()
+      while (set.size != size) set.add(rand.nextInt())
+      rand.shuffle(set.toList)
+    }
 
-  val dataGen = for {
-    size <- count
-  } yield {
-    val setData = data.take(size)
-    val testData = rand.shuffle(setData).take(TestDataSize).toArray
-    (setData, testData)
+    val MaxSize = 1000000
+    val TestDataSize = 1000
+    val count: Gen[Int] = Gen.range("size")(100000, MaxSize, 20000)
+    val totalData = generateDistinctRandomNums(MaxSize + TestDataSize)
+    val data = totalData.take(MaxSize)
+    val notExistedTestData = totalData.takeRight(TestDataSize)
+
+    val dataGen = for {
+      size <- count
+    } yield {
+      val setData = data.take(size)
+      val testData = rand.shuffle(setData).take(TestDataSize).toArray
+      (setData, testData)
+    }
+
+    def scalaSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = mutable.HashSet[Int]() ++= setData
+      (set, testData)
+    }
+
+    def immutableTrieBucketSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = ru.softage.collection.mutable.ImmutableTrieBucketHashSet[Int]() ++= setData
+      (set, testData)
+    }
+
+    def listBucketSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = ru.softage.collection.mutable.ListBucketHashSet[Int]() ++= setData
+      (set, testData)
+    }
+
+    def treeSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = mutable.TreeSet[Int]() ++= setData
+      (set, testData)
+    }
   }
 
-  def scalaIntSets = for {
-    (setData, testData) <- dataGen
-  } yield {
-    val set = mutable.HashSet[Int]() ++= setData
-    (set, testData)
-  }
+  object StringData {
+    val TestDataSize = 1000
+    val NumOfDots = 50
 
-  def immutableTrieBucketIntSets = for {
-    (setData, testData) <- dataGen
-  } yield {
-    val set = ru.softage.collection.mutable.ImmutableTrieBucketHashSet[Int]() ++= setData
-    (set, testData)
-  }
+    val totalData = Source.fromInputStream(getClass.getResourceAsStream("/identifiers.txt"), "UTF-8").getLines().toList
+    val data = totalData.take(totalData.size - TestDataSize)
+    val notExistedTestData = totalData.takeRight(TestDataSize)
+    if (data.size < TestDataSize) throw new IllegalStateException("string test data is too small")
+    val count: Gen[Int] = Gen.range("size")(TestDataSize, data.size, (data.size - TestDataSize) / NumOfDots)
 
-  def listBucketIntSets = for {
-    (setData, testData) <- dataGen
-  } yield {
-    val set = ru.softage.collection.mutable.ListBucketHashSet[Int]() ++= setData
-    (set, testData)
-  }
+    val dataGen = for {
+      size <- count
+    } yield {
+      val setData = data.take(size)
+      val testData = rand.shuffle(setData).take(TestDataSize).toArray
+      (setData, testData)
+    }
 
-  def treeIntSets = for {
-    (setData, testData) <- dataGen
-  } yield {
-    val set = mutable.TreeSet[Int]() ++= setData
-    (set, testData)
+    def scalaSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = mutable.HashSet[String]() ++= setData
+      (set, testData)
+    }
+
+    def immutableTrieBucketSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = ru.softage.collection.mutable.ImmutableTrieBucketHashSet[String]() ++= setData
+      (set, testData)
+    }
+
+    def listBucketSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = ru.softage.collection.mutable.ListBucketHashSet[String]() ++= setData
+      (set, testData)
+    }
+
+    def treeSets = for {
+      (setData, testData) <- dataGen
+    } yield {
+      val set = mutable.TreeSet[String]() ++= setData
+      (set, testData)
+    }
   }
 
   performance of "HashSet" config(
@@ -77,9 +123,9 @@ object HashSetBenchmark extends PerformanceTest {
     reports.regression.noiseMagnitude -> 0.15
     ) in {
 
-    measure method "Contains" in {
+    measure method "ContainsInts" in {
 
-      using(scalaIntSets) curve "scala" in {
+      using(IntData.scalaSets) curve "scala" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -88,7 +134,7 @@ object HashSetBenchmark extends PerformanceTest {
           }
       }
 
-      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
+      using(IntData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -97,7 +143,7 @@ object HashSetBenchmark extends PerformanceTest {
           }
       }
 
-      using(listBucketIntSets) curve "new_list_bucket" in {
+      using(IntData.listBucketSets) curve "new_list_bucket" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -106,7 +152,7 @@ object HashSetBenchmark extends PerformanceTest {
           }
       }
 
-      using(treeIntSets) curve "tree_set" in {
+      using(IntData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -116,87 +162,204 @@ object HashSetBenchmark extends PerformanceTest {
       }
     }
 
-    measure method "ContainsNotExisted" in {
+    measure method "ContainsStrings" in {
 
-      using(scalaIntSets) curve "scala" in {
+      using(StringData.scalaSets) curve "scala" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.contains(notExistedTestData(i))
+          while (i < testData.length) {
+            set.contains(testData(i))
             i += 1
           }
       }
 
-      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
+      using(StringData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.contains(notExistedTestData(i))
+          while (i < testData.length) {
+            set.contains(testData(i))
             i += 1
           }
       }
 
-      using(listBucketIntSets) curve "new_list_bucket" in {
+      using(StringData.listBucketSets) curve "new_list_bucket" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.contains(notExistedTestData(i))
+          while (i < testData.length) {
+            set.contains(testData(i))
             i += 1
           }
       }
 
-      using(treeIntSets) curve "tree_set" in {
+      using(StringData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.contains(notExistedTestData(i))
+          while (i < testData.length) {
+            set.contains(testData(i))
             i += 1
           }
       }
     }
 
-    measure method "Add" in {
+    measure method "ContainsNotExistedInts" in {
 
-      using(scalaIntSets) curve "scala" in {
+      using(IntData.scalaSets) curve "scala" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.add(notExistedTestData(i))
+          while (i < IntData.notExistedTestData.length) {
+            set.contains(IntData.notExistedTestData(i))
             i += 1
           }
       }
 
-      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
+      using(IntData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.add(notExistedTestData(i))
+          while (i < IntData.notExistedTestData.length) {
+            set.contains(IntData.notExistedTestData(i))
             i += 1
           }
       }
 
-      using(listBucketIntSets) curve "new_list_bucket" in {
+      using(IntData.listBucketSets) curve "new_list_bucket" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.add(notExistedTestData(i))
+          while (i < IntData.notExistedTestData.length) {
+            set.contains(IntData.notExistedTestData(i))
             i += 1
           }
       }
 
-      using(treeIntSets) curve "tree_set" in {
+      using(IntData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
-          while (i < notExistedTestData.length) {
-            set.add(notExistedTestData(i))
+          while (i < IntData.notExistedTestData.length) {
+            set.contains(IntData.notExistedTestData(i))
             i += 1
           }
       }
     }
 
-    measure method "Remove" in {
+    measure method "ContainsNotExistedStrings" in {
 
-      using(scalaIntSets) curve "scala" in {
+      using(StringData.scalaSets) curve "scala" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.contains(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.contains(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.listBucketSets) curve "new_list_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.contains(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.treeSets) curve "tree_set" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.contains(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+    }
+
+    measure method "AddInts" in {
+
+      using(IntData.scalaSets) curve "scala" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < IntData.notExistedTestData.length) {
+            set.add(IntData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(IntData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < IntData.notExistedTestData.length) {
+            set.add(IntData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(IntData.listBucketSets) curve "new_list_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < IntData.notExistedTestData.length) {
+            set.add(IntData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(IntData.treeSets) curve "tree_set" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < IntData.notExistedTestData.length) {
+            set.add(IntData.notExistedTestData(i))
+            i += 1
+          }
+      }
+    }
+
+    measure method "AddStrings" in {
+
+      using(StringData.scalaSets) curve "scala" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.add(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.add(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.listBucketSets) curve "new_list_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.add(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.treeSets) curve "tree_set" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < StringData.notExistedTestData.length) {
+            set.add(StringData.notExistedTestData(i))
+            i += 1
+          }
+      }
+    }
+
+    measure method "RemoveInts" in {
+
+      using(IntData.scalaSets) curve "scala" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -205,7 +368,7 @@ object HashSetBenchmark extends PerformanceTest {
           }
       }
 
-      using(immutableTrieBucketIntSets) curve "new_immutable_trie_bucket" in {
+      using(IntData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -214,7 +377,7 @@ object HashSetBenchmark extends PerformanceTest {
           }
       }
 
-      using(listBucketIntSets) curve "new_list_bucket" in {
+      using(IntData.listBucketSets) curve "new_list_bucket" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
@@ -223,7 +386,46 @@ object HashSetBenchmark extends PerformanceTest {
           }
       }
 
-      using(treeIntSets) curve "tree_set" in {
+      using(IntData.treeSets) curve "tree_set" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < testData.length) {
+            set.remove(testData(i))
+            i += 1
+          }
+      }
+    }
+
+    measure method "RemoveStrings" in {
+
+      using(StringData.scalaSets) curve "scala" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < testData.length) {
+            set.remove(testData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.immutableTrieBucketSets) curve "new_immutable_trie_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < testData.length) {
+            set.remove(testData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.listBucketSets) curve "new_list_bucket" in {
+        case (set, testData) =>
+          var i = 0
+          while (i < testData.length) {
+            set.remove(testData(i))
+            i += 1
+          }
+      }
+
+      using(StringData.treeSets) curve "tree_set" in {
         case (set, testData) =>
           var i = 0
           while (i < testData.length) {
